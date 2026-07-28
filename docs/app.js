@@ -10,6 +10,7 @@ const qEl = document.getElementById('q');
 const statusEl = document.getElementById('status');
 const out = document.getElementById('results');
 const overlay = document.getElementById('overlay');
+const clearBtn = document.getElementById('clear');
 
 let SEARCH = null, seq = 0, current = null, lastFocus = null, results = [];
 
@@ -30,39 +31,70 @@ function normalize(s){
 /* ---------------- قائمة النتائج ---------------- */
 function card(r, i){
   const pct = pctOf(r);
-  return `<div class="card" tabindex="0" role="button" data-i="${i}">
-    <div class="name">${esc(r.name)}
-      <div class="seat">رقم الجلوس: ${esc(r.seating_no)}</div>
+  return `<div class="card${isFail(r) ? ' fail' : ''}" tabindex="0" role="button" data-i="${i}">
+    <div class="info">
+      <div class="nm">${esc(r.name)}</div>
+      <div class="meta">
+        <span class="seat">رقم الجلوس: ${esc(r.seating_no)}</span>
+        <span class="tag">${esc(r.status || '—')}</span>
+      </div>
     </div>
-    <div class="deg">${r.total ?? '—'}${
-      pct == null ? '' : `<span class="pct">${pct.toFixed(1)}%</span>`}</div>
-    <span class="tag${isFail(r) ? ' bad' : ''}">${esc(r.status || '—')}</span>
+    <div class="score">
+      <b>${r.total ?? '—'}</b>
+      <i>${pct == null ? '' : pct.toFixed(1) + '%'}</i>
+    </div>
+    <div class="bar" style="width:${pct == null ? 0 : pct.toFixed(1)}%"></div>
+  </div>`;
+}
+
+const SKELETON = '<div class="sk"><div class="l"><i></i><i></i></div><div class="r"></div></div>'.repeat(3);
+
+function emptyState(q){
+  return `<div class="empty">
+    <div class="ic">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/>
+      <path d="M20 20l-3.6-3.6"/></svg>
+    </div>
+    <p>لا توجد نتائج مطابقة لـ <b>"${esc(q)}"</b></p>
+    <p style="margin-top:6px;font-size:.85rem">
+      جرّب كتابة الاسم بشكل مختلف، أو ابحث برقم الجلوس</p>
   </div>`;
 }
 
 async function run(){
   const q = qEl.value.trim();
-  out.innerHTML = ''; results = [];
-  if(!q){ statusEl.textContent = ''; return; }
+  clearBtn.classList.toggle('on', !!q);
+  results = [];
+  if(!q){ out.innerHTML = ''; statusEl.textContent = ''; return; }
+
   const my = ++seq;
-  statusEl.textContent = 'جاري البحث...';
+  statusEl.innerHTML = '<span class="dot"></span> جاري البحث...';
+  out.innerHTML = SKELETON;
+
   try{
     const data = await SEARCH(q);
     if(my !== seq) return;
-    if(!data.count){ statusEl.textContent = `لا توجد نتائج مطابقة لـ "${q}"`; return; }
+    if(!data.count){
+      statusEl.textContent = '';
+      out.innerHTML = emptyState(q);
+      return;
+    }
     results = data.results;
-    statusEl.textContent = data.count >= data.limit
+    statusEl.innerHTML = '<span class="dot"></span> ' + (data.count >= data.limit
       ? `أول ${data.count} نتيجة — اكتب الاسم بالكامل لنتائج أدق`
-      : `${data.count} نتيجة`;
+      : `${data.count} نتيجة`);
     out.innerHTML = results.map(card).join('');
   }catch(e){
     console.error(e);
-    if(my === seq) statusEl.textContent = 'تعذّر إتمام البحث. حاول مرة أخرى.';
+    if(my !== seq) return;
+    statusEl.textContent = '';
+    out.innerHTML = '<div class="empty"><p>تعذّر إتمام البحث. حاول مرة أخرى.</p></div>';
   }
 }
 
 /* ---------------- شاشة التفاصيل ---------------- */
-const CIRC = 2 * Math.PI * 76;
+const CIRC = 2 * Math.PI * 80;
 
 function openDetail(r, from){
   if(!r) return;
@@ -74,6 +106,7 @@ function openDetail(r, from){
   dSeat.textContent  = 'رقم الجلوس: ' + r.seating_no;
   dTotal.textContent = r.total ?? '—';
   dPct.textContent   = pct == null ? '' : 'النسبة ' + pct.toFixed(2) + '%';
+  dPct.style.color   = color;
   dArc.style.stroke  = color;
   dArc.style.strokeDashoffset = CIRC * (1 - (pct ?? 0) / 100);
   dTag.textContent   = r.status || '—';
@@ -97,7 +130,7 @@ function closeDetail(){
 }
 
 /* ---------------- تحميل كصورة PNG ---------------- */
-const FONT = '"Segoe UI", Tahoma, "Geeza Pro", system-ui, sans-serif';
+const FONT = 'Cairo, "Segoe UI", Tahoma, "Geeza Pro", system-ui, sans-serif';
 
 function roundRect(c, x, y, w, h, r){
   c.beginPath();
@@ -249,6 +282,7 @@ function initApp(searchFn){
     if(el){ e.preventDefault(); openDetail(results[+el.dataset.i], el); }
   });
 
+  clearBtn.onclick = () => { qEl.value = ''; qEl.focus(); run(); };
   document.getElementById('close').onclick = closeDetail;
   overlay.addEventListener('click', e => { if(e.target === overlay) closeDetail(); });
   document.addEventListener('keydown', e => {
@@ -256,8 +290,9 @@ function initApp(searchFn){
   });
 
   document.getElementById('pdf').onclick = () => window.print();
-  document.getElementById('png').onclick = () => {
+  document.getElementById('png').onclick = async () => {
     if(!current) return;
+    if(document.fonts?.ready) await document.fonts.ready;
     draw(current).toBlob(b => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(b);

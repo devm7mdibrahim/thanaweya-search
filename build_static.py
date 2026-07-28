@@ -21,7 +21,7 @@ TMP = os.path.join(HERE, "_static.db")
 
 PAGE_SIZE = 4096
 CHUNK = 8 * 1024 * 1024                     # 8 ميجا لكل جزء (أقل من حدّ GitHub بكثير)
-VENDOR_SRC = "/tmp/shv/package/dist"
+VENDOR_SRC = os.path.join(HERE, "vendor")   # مرفوعة مع المشروع
 
 
 def build_db():
@@ -196,6 +196,9 @@ def page(statuses):
                            json.dumps([s.strip() for s in statuses], ensure_ascii=False))
     open(os.path.join(SITE, "index.html"), "w").write(head + body + "\n</body>\n</html>\n")
     shutil.copy(os.path.join(HERE, "app.js"), SITE)
+    shutil.copy(os.path.join(HERE, "style.css"), SITE)
+    shutil.copytree(os.path.join(HERE, "fonts"), os.path.join(SITE, "fonts"),
+                    dirs_exist_ok=True)
     # يمنع فهرسة بيانات الطلاب في محركات البحث (البحث داخل الموقع يظل يعمل)
     open(os.path.join(SITE, "robots.txt"), "w").write("User-agent: *\nDisallow: /\n")
     print("تم بناء index.html و app.js")
