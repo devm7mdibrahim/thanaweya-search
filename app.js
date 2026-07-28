@@ -13,6 +13,9 @@ const overlay = document.getElementById('overlay');
 const clearBtn = document.getElementById('clear');
 
 let SEARCH = null, seq = 0, current = null, lastFocus = null, results = [];
+let lastQ = null;                 // آخر نص تم البحث عنه فعلاً
+const DEBOUNCE = 450;             // ملّي ثانية بعد آخر حرف
+const MIN_CHARS = 2;              // أقل عدد حروف للبحث بالاسم
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -62,11 +65,13 @@ function emptyState(q){
   </div>`;
 }
 
-async function run(){
+async function run(force){
   const q = qEl.value.trim();
   clearBtn.classList.toggle('on', !!q);
+  if(!q){ lastQ = ''; results = []; out.innerHTML = ''; statusEl.textContent = ''; return; }
+  if(!force && q === lastQ) return;   // نفس النص — لا داعي لإعادة البحث
+  lastQ = q;
   results = [];
-  if(!q){ out.innerHTML = ''; statusEl.textContent = ''; return; }
 
   const my = ++seq;
   statusEl.innerHTML = '<span class="dot"></span> جاري البحث...';
@@ -254,7 +259,7 @@ function draw(r){
 async function fromHash(){
   const seat = location.hash.replace(/^#/, '').trim();
   if(!/^\d+$/.test(seat)) return;
-  qEl.value = seat;
+  qEl.value = seat; lastQ = seat;
   const data = await SEARCH(seat);
   if(data.count){
     results = data.results;
@@ -268,9 +273,22 @@ async function fromHash(){
 function initApp(searchFn){
   SEARCH = searchFn;
 
-  form.addEventListener('submit', e => { e.preventDefault(); run(); });
   let t;
-  qEl.addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 250); });
+  const cancel = () => clearTimeout(t);
+
+  form.addEventListener('submit', e => {   // زر البحث/Enter يبحث فوراً
+    e.preventDefault(); cancel(); qEl.blur(); run(true);
+  });
+
+  qEl.addEventListener('input', () => {
+    cancel();
+    const v = qEl.value.trim();
+    clearBtn.classList.toggle('on', !!v);
+    if(!v){ run(); return; }                       // مسح فوري
+    // حرف واحد بالاسم يطابق عشرات الآلاف — انتظر حرفين على الأقل
+    if(!/^\d+$/.test(v) && v.length < MIN_CHARS) return;
+    t = setTimeout(() => run(), DEBOUNCE);
+  });
 
   out.addEventListener('click', e => {
     const el = e.target.closest('.card');
