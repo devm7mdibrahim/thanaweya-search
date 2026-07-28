@@ -1,0 +1,7 @@
+# الملفات الوسيطة — تُبنى محلياً ولا تُرفع
+results.db
+_static.db
+*.xlsx
+*.pdf
+__pycache__/
+.DS_Store

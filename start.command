@@ -1,0 +1,4 @@
+#!/bin/bash
+cd "$(dirname "$0")" || exit 1
+[ -f results.db ] || python3 build_db.py || exit 1
+python3 server.py
