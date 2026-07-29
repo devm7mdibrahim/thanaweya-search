@@ -12,6 +12,11 @@
 <body>
 <div class="wrap">
 
+  <div class="inapp" id="inapp" hidden>
+    أنت تتصفّح من داخل تطبيق فيسبوك — للحصول على أفضل تجربة وتحميل النتيجة،
+    افتح الموقع في متصفح الهاتف من زر «⋯» بالأعلى.
+  </div>
+
   <header class="hero">
     <div class="mark">٢٦</div>
     <h1>نتيجة الثانوية العامة ٢٠٢٦</h1>
@@ -80,6 +85,15 @@
       <button id="png" class="primary">تحميل صورة</button>
       <button id="pdf" class="ghost">حفظ PDF</button>
     </div>
+  </div>
+</div>
+
+<!-- عرض الصورة داخل المتصفحات التي تمنع التحميل (فيسبوك وغيره) -->
+<div class="overlay imgview" id="imgview" role="dialog" aria-modal="true">
+  <div class="ivbox">
+    <p class="ivhint" id="ivhint"></p>
+    <img id="ivimg" alt="صورة النتيجة">
+    <button class="ghost" id="ivclose">إغلاق</button>
   </div>
 </div>
 

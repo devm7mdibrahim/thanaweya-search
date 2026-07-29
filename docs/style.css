@@ -214,3 +214,22 @@ button{font:inherit;border:0;cursor:pointer;font-family:inherit}
   .head{background:#1b6ef3 !important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ---------- تنبيه المتصفح المدمّج (فيسبوك/إنستجرام) ---------- */
+.inapp{
+  margin:14px 0 0;padding:11px 14px;border-radius:12px;font-size:.82rem;
+  line-height:1.7;color:#8a5a00;background:#fff6e0;border:1px solid #f5d98a;
+}
+@media (prefers-color-scheme:dark){
+  .inapp{color:#ffd591;background:#2a2113;border-color:#5a4620}
+}
+
+/* ---------- عارض الصورة للحفظ بالضغط المطوّل ---------- */
+.imgview{align-items:center}
+.ivbox{max-width:420px;width:100%;text-align:center}
+.ivhint{margin:0 0 12px;color:#fff;font-size:.9rem;font-weight:600;
+  text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.ivbox img{width:100%;height:auto;border-radius:16px;display:block;
+  box-shadow:var(--shadow-lg);-webkit-touch-callout:default}
+.ivbox button{margin-top:14px;padding:12px 30px;border-radius:12px;font-weight:700;
+  background:var(--surface);color:var(--text);border:1px solid var(--line)}

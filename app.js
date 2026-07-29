@@ -135,6 +135,13 @@ function closeDetail(){
 }
 
 /* ---------------- تحميل كصورة PNG ---------------- */
+/* المتصفح المدمّج داخل فيسبوك/إنستجرام يمنع تحميل الملفات والطباعة */
+const IN_APP = /FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|GSA\/|Line\/|Twitter|TikTok|Snapchat/i
+  .test(navigator.userAgent);
+/* المشاركة الأصلية للموبايل فقط — على الكمبيوتر التحميل المباشر أفضل */
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                  (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+
 const FONT = 'Cairo, "Segoe UI", Tahoma, "Geeza Pro", system-ui, sans-serif';
 
 function roundRect(c, x, y, w, h, r){
@@ -255,6 +262,59 @@ function draw(r){
   return cv;
 }
 
+/* ---------------- تصدير الصورة ---------------- */
+const imgview = document.getElementById('imgview');
+
+function showImage(blob, hint){
+  const img = document.getElementById('ivimg');
+  if(img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  img.src = URL.createObjectURL(blob);
+  document.getElementById('ivhint').textContent = hint;
+  imgview.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function tellOpenInBrowser(){
+  alert('حفظ PDF لا يعمل داخل تطبيق فيسبوك.\n' +
+        'افتح الموقع في متصفح الهاتف (Chrome أو Safari) من زر «...» بالأعلى، ' +
+        'أو استخدم «تحميل صورة».');
+}
+
+async function exportPNG(){
+  if(!current) return;
+  if(document.fonts?.ready){ try{ await document.fonts.ready; }catch(e){} }
+
+  const cv = draw(current);
+  const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+  if(!blob) return;
+
+  const name = `نتيجة-${current.seating_no}.png`;
+  const file = new File([blob], name, { type: 'image/png' });
+
+  // 1) مشاركة أصلية — تعمل داخل تطبيق فيسبوك وعلى الموبايل عموماً
+  if(IS_MOBILE && navigator.canShare && navigator.canShare({ files: [file] })){
+    try{ await navigator.share({ files: [file] }); return; }
+    catch(err){ if(err && err.name === 'AbortError') return; }
+  }
+
+  // 2) المتصفح المدمّج يمنع التحميل — اعرض الصورة ليحفظها بالضغط المطوّل
+  if(IN_APP){
+    showImage(blob, 'اضغط مطولاً على الصورة ثم اختر «حفظ الصورة»');
+    return;
+  }
+
+  // 3) تحميل عادي
+  try{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }catch(e){
+    showImage(blob, 'اضغط مطولاً على الصورة ثم اختر «حفظ الصورة»');
+  }
+}
+
 /* ---------------- رابط مباشر: #2001970 ---------------- */
 async function fromHash(){
   const seat = location.hash.replace(/^#/, '').trim();
@@ -272,6 +332,7 @@ async function fromHash(){
 /* ---------------- التشغيل ---------------- */
 function initApp(searchFn){
   SEARCH = searchFn;
+  if(IN_APP) document.getElementById('inapp').hidden = false;
 
   let t;
   const cancel = () => clearTimeout(t);
@@ -307,18 +368,18 @@ function initApp(searchFn){
     if(e.key === 'Escape' && overlay.classList.contains('open')) closeDetail();
   });
 
-  document.getElementById('pdf').onclick = () => window.print();
-  document.getElementById('png').onclick = async () => {
-    if(!current) return;
-    if(document.fonts?.ready) await document.fonts.ready;
-    draw(current).toBlob(b => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(b);
-      a.download = `نتيجة-${current.seating_no}.png`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    }, 'image/png');
+  document.getElementById('pdf').onclick = () => {
+    if(IN_APP){ tellOpenInBrowser(); return; }
+    window.print();
   };
+  document.getElementById('png').onclick = exportPNG;
+  document.getElementById('ivclose').onclick = () => {
+    imgview.classList.remove('open');
+    if(!overlay.classList.contains('open')) document.body.style.overflow = '';
+  };
+  imgview.addEventListener('click', e => {
+    if(e.target === imgview) document.getElementById('ivclose').click();
+  });
 
   addEventListener('hashchange', fromHash);
   fromHash();
