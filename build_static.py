@@ -6,6 +6,7 @@
   2. يقسّمها إلى أجزاء أصغر من حدّ GitHub (100 ميجا للملف)
   3. يكتب config.json الخاص بـ sql.js-httpvfs
 """
+import hashlib
 import json
 import os
 import shutil
@@ -194,7 +195,12 @@ def page(statuses):
     head = src[:src.index('<script src="app.js">')]
     body = BACKEND.replace("__STATUSES__",
                            json.dumps([s.strip() for s in statuses], ensure_ascii=False))
-    open(os.path.join(SITE, "index.html"), "w").write(head + body + "\n</body>\n</html>\n")
+    html = head + body + "\n</body>\n</html>\n"
+    # بصمة قصيرة من محتوى كل ملف تُجبر المتصفح على جلب النسخة الجديدة
+    for asset in ("style.css", "app.js"):
+        digest = hashlib.md5(open(os.path.join(HERE, asset), "rb").read()).hexdigest()[:8]
+        html = html.replace('"%s"' % asset, '"%s?v=%s"' % (asset, digest))
+    open(os.path.join(SITE, "index.html"), "w").write(html)
     shutil.copy(os.path.join(HERE, "app.js"), SITE)
     shutil.copy(os.path.join(HERE, "style.css"), SITE)
     shutil.copytree(os.path.join(HERE, "fonts"), os.path.join(SITE, "fonts"),
