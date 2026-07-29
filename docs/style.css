@@ -233,3 +233,30 @@ button{font:inherit;border:0;cursor:pointer;font-family:inherit}
   box-shadow:var(--shadow-lg);-webkit-touch-callout:default}
 .ivbox button{margin-top:14px;padding:12px 30px;border-radius:12px;font-weight:700;
   background:var(--surface);color:var(--text);border:1px solid var(--line)}
+
+/* ---------- توقيع المصمّم ---------- */
+.credit{
+  margin:30px auto 0;padding:14px 18px;max-width:340px;
+  display:flex;align-items:center;justify-content:center;gap:11px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  box-shadow:var(--shadow);
+}
+.credit .by{color:var(--muted);font-size:.82rem;font-weight:500}
+.dev{
+  display:inline-flex;align-items:center;gap:7px;
+  color:var(--text);font-size:.9rem;font-weight:700;text-decoration:none;
+  padding:6px 14px;border-radius:999px;
+  border:1px solid transparent;background:var(--surface-2);
+  transition:color .18s, background .18s, border-color .18s, transform .18s;
+}
+.dev svg{width:17px;height:17px;color:#25d366;flex:none;transition:transform .18s}
+.dev:hover{
+  color:#0f8a44;background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.45);
+  transform:translateY(-1px);
+}
+.dev:hover svg{transform:scale(1.12)}
+.dev:focus-visible{outline:none;border-color:#25d366;box-shadow:0 0 0 4px rgba(37,211,102,.25)}
+@media (prefers-color-scheme:dark){
+  .dev:hover{color:#4ee38b}
+}
+@media print{ .credit{display:none !important} }
